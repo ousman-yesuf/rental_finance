@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model audit {
+  id         Int      @id @default(autoincrement())
+  buildingId Int
+  action     String
+  userId     Int
+  timestamp  DateTime @default(now())
+  details    String?
+  building   building @relation(fields: [buildingId], references: [id], map: "Audit_buildingId_fkey")
+
+  @@index([buildingId], map: "Audit_buildingId_fkey")
+}
+
+model building {
+  id         Int          @id @default(autoincrement())
+  name       String
+  address    String
+  audit      audit[]
+  expense    expense[]
+  payroll    payroll[]
+  rentalunit rentalunit[]
+}
+
+model expense {
+  id          Int      @id @default(autoincrement())
+  buildingId  Int
+  description String
+  amount      Float
+  date        DateTime
+  category    String
+  vat         Float    @default(0)
+  building    building @relation(fields: [buildingId], references: [id], map: "Expense_buildingId_fkey")
+
+  @@index([buildingId], map: "Expense_buildingId_fkey")
+}
+
+model payment {
+  id           Int        @id @default(autoincrement())
+  amount       Decimal    @db.Decimal(10, 2)
+  vat          Decimal    @db.Decimal(10, 2)
+  date         DateTime   @default(now()) @db.DateTime(0)
+  rentalUnitId Int
+  rentalunit   rentalunit @relation(fields: [rentalUnitId], references: [id], onUpdate: Restrict, map: "payment_ibfk_1")
+
+  @@index([rentalUnitId], map: "rentalUnitId")
+}
+
+model payroll {
+  id           Int      @id @default(autoincrement())
+  buildingId   Int
+  employeeName String
+  salary       Float
+  date         DateTime
+  deductions   Float    @default(0)
+  vat          Float    @default(0)
+  building     building @relation(fields: [buildingId], references: [id], map: "Payroll_buildingId_fkey")
+
+  @@index([buildingId], map: "Payroll_buildingId_fkey")
+}
+
+model rentalunit {
+  id         Int       @id @default(autoincrement())
+  buildingId Int
+  unitNumber String
+  tenantName String?
+  rentAmount Float
+  dueDate    DateTime
+  paid       Boolean   @default(false)
+  payment    payment[]
+  building   building  @relation(fields: [buildingId], references: [id], map: "RentalUnit_buildingId_fkey")
+
+  @@index([buildingId], map: "RentalUnit_buildingId_fkey")
+}
+
+model user {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique(map: "User_email_key")
+  name      String?
+  role      user_role @default(USER)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime
+}
+
+enum user_role {
+  USER
+  ADMIN
+}
